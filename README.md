@@ -1,2 +1,2 @@
 # bnr
-Brain Noise eduction
+Brain Noise reduction
