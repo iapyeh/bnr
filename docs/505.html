@@ -522,7 +522,7 @@
 
     <div
         style="margin-top: 20px; font-size: 12px; color: var(--muted); opacity: 0.5; text-align: center; font-weight: 500; letter-spacing: 0.5px;">
-        &copy; 2026 hsinyuanyeh.
+        &copy; 2026 hsinyuanyeh. v2.0.1
     </div>
 
     <script>
@@ -661,6 +661,7 @@
         let isInfiniteCurrent = false;
 
         let lastRandomFreq = 2000;
+        let wakeLock = null;
 
         const ui = {
             timerDisplay: document.getElementById('timerDisplay'),
@@ -669,6 +670,29 @@
             stagesList: document.getElementById('stagesList'),
             addStageBtn: document.getElementById('addStageBtn')
         };
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.warn('Wake Lock error:', err);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible' && isPlaying) {
+                requestWakeLock();
+            }
+        });
 
         // Render Stages
         function renderStages() {
@@ -971,6 +995,7 @@
             isPlaying = true;
             ui.playBtn.innerText = "STOP";
             ui.playBtn.classList.add('playing');
+            requestWakeLock();
 
             playStage(firstEnabled);
 
@@ -992,6 +1017,7 @@
             renderStages(); // Remove active state
             updateTimerDisplay(0);
             visualizerText = "READY";
+            releaseWakeLock();
         }
 
         ui.playBtn.addEventListener('click', () => {
