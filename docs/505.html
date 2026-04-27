@@ -479,13 +479,20 @@
                 大腦降噪機的預設有預睡階段與舒眠階段。預睡階段是6分鐘的固定節奏，訓練大腦的穩定性。安眠階段是1小時隨機節奏，讓大腦在猜測等待的小趣味中逐漸休眠。階段可以取消或新增，節奏與時間長度等參數皆可調整，您可以根據使用經驗調整，找出屬於自己的設定。<br><br>
 
                 根據使用見證，使用大腦降噪機助眠有很高的成功機率。建議至少使用七日再斷定大腦降噪機對您是否有效。若無效時，建議您調整參數後再試試，或許您只是還沒找到適合的設定參數而已。<br><br>
-
+                <hr style="border:none;border-top: 1px dashed #777777;padding-bottom:2px;"><br>
                 請您安心調整設定，必要時隨時可以回復預設值。
                 <button onclick="resetDefaults()"
                     style="margin-top: 15px; width: 100%; padding: 12px; border-radius: 12px; border: 1px dashed rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05); color: #ef4444; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;"
                     onmouseover="this.style.background='rgba(239, 68, 68, 0.15)'"
                     onmouseout="this.style.background='rgba(239, 68, 68, 0.05)'">
                     回復預設值 (Reset to Defaults)
+                </button><br><br>
+                找到最適合自己的設定之後，也可儲存目前的設定。
+                <button onclick="saveDefaults()"
+                    style="margin-top: 10px; width: 100%; padding: 12px; border-radius: 12px; border: 1px dashed rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.05); color: var(--primary); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(56, 189, 248, 0.15)'"
+                    onmouseout="this.style.background='rgba(56, 189, 248, 0.05)'">
+                    儲存為預設值 (Save as Defaults)
                 </button>
             </div>
         </div>
@@ -522,7 +529,7 @@
 
     <div
         style="margin-top: 20px; font-size: 12px; color: var(--muted); opacity: 0.5; text-align: center; font-weight: 500; letter-spacing: 0.5px;">
-        &copy; 2026 hsinyuanyeh. v2.0.2
+        &copy; 2026 hsinyuanyeh. v2.0.3
     </div>
 
     <script>
@@ -626,21 +633,37 @@
         const DEFAULT_STAGE_2 = { bpm: 1, frequency: 2200, randomMode: true, durationSec: 3600, infinite: false, collapsed: true };
         const DEFAULT_NEW_STAGE = { bpm: 2, frequency: 2200, randomMode: true, durationSec: 3600, infinite: false, collapsed: false };
 
-        window.resetDefaults = () => {
-            if (confirm("確定要將第一與第二階段回復為預設值嗎？\n(Are you sure you want to reset the default stages?)")) {
-                if (stages.length >= 2) {
-                    stages[0] = { ...stages[0], enabled: true, ...DEFAULT_STAGE_1 };
-                    stages[1] = { ...stages[1], enabled: true, ...DEFAULT_STAGE_2 };
-                    renderStages();
+        function getSavedDefaults() {
+            const saved = localStorage.getItem('metronome_saved_stages');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {
+                    console.error("Failed to parse saved stages", e);
                 }
+            }
+            return [
+                { id: Date.now(), enabled: true, ...DEFAULT_STAGE_1 },
+                { id: Date.now() + 1, enabled: true, ...DEFAULT_STAGE_2 }
+            ];
+        }
+
+        window.resetDefaults = () => {
+            if (confirm("確定要回復為儲存的預設值嗎？\n(Are you sure you want to restore saved defaults?)")) {
+                stages = getSavedDefaults();
+                renderStages();
+            }
+        };
+
+        window.saveDefaults = () => {
+            if (confirm("確定要將目前的設定儲存為預設值嗎？\n(Save current settings as new defaults?)")) {
+                localStorage.setItem('metronome_saved_stages', JSON.stringify(stages));
+                alert("已成功儲存為預設值！");
             }
         };
 
         // Data Structure
-        let stages = [
-            { id: Date.now(), enabled: true, ...DEFAULT_STAGE_1 },
-            { id: Date.now() + 1, enabled: true, ...DEFAULT_STAGE_2 }
-        ];
+        let stages = getSavedDefaults();
 
         // Audio Context & State
         let audioContext;
