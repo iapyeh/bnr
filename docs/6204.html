@@ -805,7 +805,7 @@
                         <div class="control-group">
                             <label style="margin-bottom: 10px; display: block;">時間長度 (Duration)</label>
                             <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                                <div style="display: flex; gap: 8px; align-items: center;">
+                                <div style="display: flex; gap: 8px; align-items: center; opacity: ${stage.infinite ? '0.3' : '1'}; transition: opacity 0.2s;">
                                     <input type="number" class="inline-input" min="0" value="${Math.floor(stage.durationSec / 3600)}" 
                                         onchange="updateDuration(${index}, 'h', this.value)" ${stage.infinite ? 'disabled' : ''} style="width: 55px; padding: 8px 4px;"> 
                                     <span style="font-size: 14px; color: var(--muted)">時</span>
