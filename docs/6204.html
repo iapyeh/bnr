@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大腦降噪機</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --primary: #38bdf8;
+            --secondary: #818cf8;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --glow: 0 0 20px rgba(56, 189, 248, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg) 70%);
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: parseInt(var(--glow));
+        }
+
+        .visualizer {
+            width: 100%;
+            height: 120px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            margin: 0 auto 30px;
+            display: block;
+            box-shadow: 0 0 0 rgba(56, 189, 248, 0);
+            transition: box-shadow 0.1s ease-out, transform 0.05s ease-out;
+            user-select: none;
+        }
+
+        .visualizer.tick {
+            box-shadow: 0 0 40px rgba(56, 189, 248, 0.6);
+            transform: scale(1.02);
+            border-color: rgba(56, 189, 248, 0.5);
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .control-group label span {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .input-box {
+            flex: 1;
+        }
+
+        .input-box input[type="number"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 18px;
+            outline: none;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .input-box input[type="number"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        .timer-display {
+            text-align: center;
+            font-size: 28px;
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 12px;
+        }
+
+        .btn-play {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .btn-play:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.5);
+        }
+
+        .btn-play:active {
+            transform: translateY(1px);
+        }
+
+        .btn-play.playing {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-play.playing:hover {
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+        }
+
+        .switch-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .switch-group label {
+            margin-bottom: 0;
+            font-size: 16px;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.switch-slider {
+            background-color: var(--primary);
+        }
+
+        input:focus+.switch-slider {
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        input:checked+.switch-slider:before {
+            transform: translateX(20px);
+        }
+
+        .stages-container {
+            margin-bottom: 20px;
+        }
+
+        .stage-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .stage-card.active-stage {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .stage-card.disabled-stage {
+            opacity: 0.5;
+            border-style: dashed;
+        }
+
+        .stage-header {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stage-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .stage-title {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stage-name-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        .stage-toolbar-toggle {
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+
+        .stage-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 18px;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .btn-icon:hover {
+            color: var(--text);
+        }
+
+        .btn-remove:hover {
+            color: #ef4444;
+        }
+
+        .btn-add-stage {
+            width: 100%;
+            padding: 12px;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: transparent;
+            color: var(--muted);
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .btn-add-stage:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .infinite-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .infinite-toggle input {
+            cursor: pointer;
+        }
+
+        .stage-card .control-group {
+            margin-bottom: 16px;
+        }
+
+        .stage-card .switch-group {
+            margin-bottom: 16px;
+        }
+
+        .time-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .time-inputs .input-box {
+            flex: 1;
+        }
+
+        .input-box input[type="number"]:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .inline-input {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 16px;
+            font-weight: 600;
+            width: 60px;
+            text-align: right;
+            outline: none;
+            font-family: inherit;
+            padding: 0;
+            margin: 0;
+        }
+
+        .inline-input::-webkit-outer-spin-button,
+        .inline-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .bpm-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .btn-stepper {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-stepper:hover {
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>大腦降噪機</h1>
+
+        <canvas class="visualizer" id="visualizer" width="400" height="120"></canvas>
+
+        <div class="timer-display" id="timerDisplay">--:--</div>
+
+        <div style="padding:5px">睡覺準備就緒後，請按START開始</div>
+        <button class="btn-play" id="playBtn">START</button>
+
+        <div class="stages-container" id="stagesList">
+            <!-- Stage cards injected by JS -->
+        </div>
+
+        <button class="btn-add-stage" id="addStageBtn">+ 新增階段 (Add Stage)</button>
+
+        <div class="readme-container"
+            style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 15px; margin-bottom: 20px;">
+            <div class="readme-header"
+                style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;"
+                onclick="toggleReadme()">
+                <div style="font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                    <span id="readmeToggleIcon"
+                        style="display:inline-block; width:15px; font-size: 12px; transition: transform 0.2s; transform: rotate(-90deg)">▼</span>
+                    使用說明 (Instructions)
+                </div>
+            </div>
+            <div id="readmeBody"
+                style="display: none; font-size: 14px; color: var(--muted); margin-top: 15px; line-height: 1.6;">
+                大腦降噪機是根據學理與實證設計的助眠設備。以固定節拍與隨機節拍相互搭配的方式協助聽者進入睡眠。
+                它具備傳統節拍器固定節奏，與隨機節拍器的不固定的節奏，每次產生一個或數個響聲。<br><br>
+
+                您在床上躺平做好睡覺準備之後啟動它，然後注意聽它的響聲。剛開始，你會因它突然的響聲而內心振動，有點受驚嚇的感覺。逐漸的，你會熟悉那種突如其來的心驚，甚至享受那種觸電感，使用時，只須注意聽它的下一個響聲，任由其它亂舞的思緒飛揚，大腦稍候會自然地從紛亂的思緒中得到解放，進入睡眠<br><br>
+
+                大腦降噪機的預設有預睡階段與舒眠階段。預睡階段是6分鐘的固定節奏，訓練大腦的穩定性。安眠階段是1小時隨機節奏，讓大腦在猜測等待的小趣味中逐漸休眠。階段可以取消或新增，節奏與時間長度等參數皆可調整，您可以根據使用經驗調整，找出屬於自己的設定。<br><br>
+
+                根據使用見證，使用大腦降噪機助眠有很高的成功機率。建議至少使用七日再斷定大腦降噪機對您是否有效。若無效時，建議您調整參數後再試試，或許您只是還沒找到適合的設定參數而已。<br><br>
+                <hr style="border:none;border-top: 1px dashed #777777;padding-bottom:2px;"><br>
+                請您安心調整設定，必要時隨時可以回復預設值。
+                <button onclick="resetDefaults()"
+                    style="margin-top: 15px; width: 100%; padding: 12px; border-radius: 12px; border: 1px dashed rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05); color: #ef4444; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(239, 68, 68, 0.15)'"
+                    onmouseout="this.style.background='rgba(239, 68, 68, 0.05)'">
+                    回復預設值 (Reset to Defaults)
+                </button><br><br>
+                找到最適合自己的設定之後，也可儲存目前的設定。下次開啟時就會是相同的設定值與畫面。
+                <button onclick="saveDefaults()"
+                    style="margin-top: 10px; width: 100%; padding: 12px; border-radius: 12px; border: 1px dashed rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.05); color: var(--primary); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(56, 189, 248, 0.15)'"
+                    onmouseout="this.style.background='rgba(56, 189, 248, 0.05)'">
+                    儲存為預設值 (Save as Defaults)
+                </button>
+            </div>
+        </div>
+
+        <div class="science-container"
+            style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 15px; margin-top: 20px;">
+            <div class="science-header"
+                style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;"
+                onclick="toggleScience()">
+                <div style="font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                    <span id="scienceToggleIcon"
+                        style="display:inline-block; width:15px; font-size: 12px; transition: transform 0.2s; transform: rotate(-90deg)">▼</span>
+                    💡 科學原理與學理證明
+                </div>
+            </div>
+            <div id="scienceBody"
+                style="display: none; font-size: 14px; color: var(--muted); margin-top: 15px; line-height: 1.6;">
+                <div
+                    style="background: rgba(56, 189, 248, 0.05); border-left: 3px solid var(--primary); padding: 10px 15px; border-radius: 0 8px 8px 0; font-size: 13px;">
+                    本工具基於睡眠醫學與認知心理學的兩大機制：<br><br>
+                    1. <strong>注意力轉移 (Cognitive Distraction)</strong>：將大腦注意力轉移到中性的外部刺激上，能有效佔據工作記憶，阻斷引發失眠的焦慮思緒與「大腦反芻」。
+                    (<a href="https://pubmed.ncbi.nlm.nih.gov/12186352/" target="_blank"
+                        style="color: var(--primary); text-decoration: none; border-bottom: 1px dotted var(--primary);">Harvey
+                        AG, 2002</a>)<br><br>
+                    2. <strong>認知洗牌 (Cognitive Shuffling)</strong>：由認知科學家 Luc Beaudoin
+                    提出。大腦在處理「隨機、不可預測」的微弱刺激時，無法形成連續的邏輯思考。這會欺騙睡眠機制，讓大腦認為「現在沒有邏輯威脅」，進而快速誘發睡眠前的「微夢境」狀態。這是大腦降噪機具催眠效果的核心原因。
+                    (<a href="https://pubmed.ncbi.nlm.nih.gov/25674381/" target="_blank"
+                        style="color: var(--primary); text-decoration: none; border-bottom: 1px dotted var(--primary);">Beaudoin
+                        LP, 2014</a>)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div
+        style="margin-top: 20px; font-size: 12px; color: var(--muted); opacity: 0.5; text-align: center; font-weight: 500; letter-spacing: 0.5px;">
+        &copy; 2026 hsinyuanyeh. v2.0.4
+    </div>
+
+    <script>
+        // Visualizer Canvas Logic
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        let visWidth, visHeight;
+        let historyLength = 200;
+        let lineHistory = new Array(historyLength).fill(0);
+        let pulseProgress = 0;
+        let visualizerText = "READY";
+
+        function resizeCanvas() {
+            visWidth = canvas.clientWidth || 300;
+            visHeight = canvas.clientHeight || 120;
+            canvas.width = visWidth * window.devicePixelRatio;
+            canvas.height = visHeight * window.devicePixelRatio;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function drawVisualizer() {
+            requestAnimationFrame(drawVisualizer);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (visualizerText) {
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = `700 30px Inter`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
+                ctx.fillText(visualizerText, canvas.width / 2, canvas.height / 2);
+                ctx.shadowBlur = 0;
+                return;
+            }
+
+            let nextVal = 0;
+            if (pulseProgress > 0) {
+                nextVal = Math.sin(pulseProgress * Math.PI * 6) * Math.exp(-pulseProgress * 3) * (canvas.height * 0.35);
+                pulseProgress += 0.04;
+                if (pulseProgress > 1) pulseProgress = 0;
+            } else if (isPlaying) {
+                nextVal = (Math.random() - 0.5) * 4 * window.devicePixelRatio;
+            }
+
+            lineHistory.push(nextVal);
+            lineHistory.shift();
+
+            ctx.beginPath();
+            ctx.lineWidth = 2 * window.devicePixelRatio;
+            ctx.strokeStyle = '#38bdf8';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#38bdf8';
+
+            let sliceWidth = canvas.width / (historyLength - 1);
+            let x = 0;
+            let centerY = canvas.height / 2;
+
+            for (let i = 0; i < historyLength; i++) {
+                let y = centerY - lineHistory[i];
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        setTimeout(() => {
+            resizeCanvas();
+            drawVisualizer();
+        }, 100);
+
+        window.toggleScience = () => {
+            const body = document.getElementById('scienceBody');
+            const icon = document.getElementById('scienceToggleIcon');
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                body.style.display = 'none';
+                icon.style.transform = 'rotate(-90deg)';
+            }
+        };
+
+        window.toggleReadme = () => {
+            const body = document.getElementById('readmeBody');
+            const icon = document.getElementById('readmeToggleIcon');
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                body.style.display = 'none';
+                icon.style.transform = 'rotate(-90deg)';
+            }
+        };
+
+        // Default Stage Configurations
+        const DEFAULT_STAGE_1 = { name: "預睡階段", bpm: 3, frequency: 900, randomMode: false, durationSec: 360, infinite: false, collapsed: true };
+        const DEFAULT_STAGE_2 = { name: "舒眠階段", bpm: 1, frequency: 2200, randomMode: true, durationSec: 7200, infinite: false, collapsed: true };
+        const DEFAULT_NEW_STAGE = { name: "階段", bpm: 2, frequency: 2200, randomMode: true, durationSec: 3600, infinite: false, collapsed: false };
+
+        function getSavedDefaults() {
+            const saved = localStorage.getItem('metronome_saved_stages');
+            if (saved) {
+                try {
+                    let parsed = JSON.parse(saved);
+                    return parsed.map(s => ({ ...s, collapsed: true }));
+                } catch (e) {
+                    console.error("Failed to parse saved stages", e);
+                }
+            }
+            return [
+                { id: Date.now(), enabled: true, ...DEFAULT_STAGE_1, collapsed: true },
+                { id: Date.now() + 1, enabled: true, ...DEFAULT_STAGE_2, collapsed: true }
+            ];
+        }
+
+        window.resetDefaults = () => {
+            if (confirm("確定要回復為儲存的預設值嗎？\n(Are you sure you want to restore saved defaults?)")) {
+                stages = getSavedDefaults();
+                renderStages();
+            }
+        };
+
+        window.saveDefaults = () => {
+            if (confirm("確定要將目前的設定儲存為預設值嗎？\n(Save current settings as new defaults?)")) {
+                localStorage.setItem('metronome_saved_stages', JSON.stringify(stages));
+                alert("已成功儲存為預設值！");
+            }
+        };
+
+        // Data Structure
+        let stages = getSavedDefaults();
+
+        // Audio Context & State
+        let audioContext;
+        let isPlaying = false;
+        let currentStageIndex = -1;
+
+        let activeBpm = 10;
+        let activeFreq = 2300;
+        let activeRandomMode = true;
+
+        let nextNoteTime = 0.0;
+        let lookahead = 25.0; // ms
+        let scheduleAheadTime = 0.1; // s
+
+        let timeWorkerId = null;
+        let timerIntervalId = null;
+        let endTime = 0;
+        let isInfiniteCurrent = false;
+
+        let lastRandomFreq = 2000;
+        let wakeLock = null;
+
+        const ui = {
+            timerDisplay: document.getElementById('timerDisplay'),
+            playBtn: document.getElementById('playBtn'),
+            visualizer: document.getElementById('visualizer'),
+            stagesList: document.getElementById('stagesList'),
+            addStageBtn: document.getElementById('addStageBtn')
+        };
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.warn('Wake Lock error:', err);
+                alert('取消螢幕鎖定失敗,' + err)
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible' && isPlaying) {
+                requestWakeLock();
+            }
+        });
+
+        // Render Stages
+        function renderStages() {
+            ui.stagesList.innerHTML = '';
+            stages.forEach((stage, index) => {
+                const card = document.createElement('div');
+                card.className = `stage-card ${!stage.enabled ? 'disabled-stage' : ''} ${currentStageIndex === index ? 'active-stage' : ''}`;
+
+                card.innerHTML = `
+                    <div class="stage-header" style="cursor: pointer;" onclick="toggleCollapse(${index})">
+                        <div class="stage-title-row">
+                            <div class="stage-title">
+                                <span style="display:inline-block; width:20px; font-size: 12px; transition: transform 0.2s; transform: rotate(${stage.collapsed ? '-90deg' : '0deg'}); flex-shrink: 0;">▼</span>
+                                <span class="stage-name-text" title="${stage.name || '自訂階段'}">${stage.name || '自訂階段'}</span>
+                            </div>
+                            <div class="stage-toolbar-toggle" onclick="event.stopPropagation()">
+                                <button class="btn-icon" onclick="toggleToolbar(${index})" title="開啟/關閉工具列" style="font-size: 16px;">⚙️</button>
+                            </div>
+                        </div>
+                        <div class="stage-toolbar" style="display: ${stage.showToolbar ? 'flex' : 'none'};" onclick="event.stopPropagation()">
+                            <button class="btn-icon" onclick="renameStage(${index})" title="重新命名">✏️</button>
+                            <button class="btn-icon" onclick="moveStage(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.2"' : ''} title="向上移動">↑</button>
+                            <button class="btn-icon" onclick="moveStage(${index}, 1)" ${index === stages.length - 1 ? 'disabled style="opacity:0.2"' : ''} title="向下移動">↓</button>
+                            <label class="switch" title="開啟/關閉階段" style="margin-left: 8px;">
+                                <input type="checkbox" onchange="toggleStage(${index})" ${stage.enabled ? 'checked' : ''}>
+                                <span class="switch-slider"></span>
+                            </label>
+                            <button class="btn-icon btn-remove" onclick="removeStage(${index})" title="刪除階段" style="margin-left: 8px;">✕</button>
+                        </div>
+                    </div>
+
+                    <div class="stage-body" style="display: ${stage.collapsed ? 'none' : 'block'};">
+                        <div class="control-group">
+                            <label style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <span>BPM</span>
+                                <input type="number" class="inline-input" min="0.1" max="150" step="0.1" value="${stage.bpm}" 
+                                    onchange="updateStage(${index}, 'bpm', this.value); renderStages()">
+                            </label>
+                            <div class="bpm-controls">
+                                <button class="btn-stepper" onclick="adjustBPM(${index}, -1)">-</button>
+                                <input type="range" style="flex: 1" min="0.1" max="150" step="0.1" value="${stage.bpm}" 
+                                    oninput="updateStage(${index}, 'bpm', this.value, this); this.parentElement.previousElementSibling.querySelector('input.inline-input').value = this.value">
+                                <button class="btn-stepper" onclick="adjustBPM(${index}, 1)">+</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Tone Frequency <span>${stage.frequency} Hz</span></label>
+                            <input type="range" min="150" max="5000" step="10" value="${stage.frequency}" 
+                                oninput="updateStage(${index}, 'frequency', this.value); this.previousElementSibling.querySelector('span').innerText = this.value + ' Hz'">
+                        </div>
+
+                        <div class="switch-group">
+                            <label>Random Mode</label>
+                            <label class="switch">
+                                <input type="checkbox" onchange="updateStage(${index}, 'randomMode', this.checked)" ${stage.randomMode ? 'checked' : ''}>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Duration (Seconds)</label>
+                            <div class="time-inputs">
+                                <div class="input-box">
+                                    <input type="number" min="1" value="${stage.durationSec}" 
+                                        onchange="updateStage(${index}, 'durationSec', this.value)" ${stage.infinite ? 'disabled' : ''}>
+                                </div>
+                            </div>
+                            <label class="infinite-toggle">
+                                <input type="checkbox" onchange="updateStage(${index}, 'infinite', this.checked)" ${stage.infinite ? 'checked' : ''}>
+                                一直持續不停 (Infinite)
+                            </label>
+                        </div>
+                    </div>
+                `;
+                ui.stagesList.appendChild(card);
+            });
+        }
+
+        window.adjustBPM = (index, direction) => {
+            let current = parseFloat(stages[index].bpm);
+            if (current <= 1 && (current + direction * 0.1) < 1.05) {
+                current = Math.round((current + direction * 0.1) * 10) / 10;
+            } else {
+                current = Math.round(current) + direction;
+            }
+            if (current < 0.1) current = 0.1;
+            if (current > 150) current = 150;
+            updateStage(index, 'bpm', current);
+            renderStages();
+        };
+
+        window.updateStage = (index, field, value, element) => {
+            if (field === 'bpm') {
+                let val = parseFloat(value);
+                if (isNaN(val)) val = 1;
+                if (val >= 1 && val !== Math.floor(val)) {
+                    val = Math.round(val);
+                    if (element) element.value = val;
+                }
+                value = val;
+            } else if (field === 'frequency' || field === 'durationSec') {
+                value = parseInt(value) || 1;
+            }
+            stages[index][field] = value;
+            if (field === 'infinite') {
+                renderStages(); // Re-render to toggle disabled state of duration input
+            }
+
+            // If updating currently playing stage, update live settings
+            if (isPlaying && currentStageIndex === index) {
+                if (field === 'bpm') activeBpm = value;
+                if (field === 'frequency') activeFreq = value;
+                if (field === 'randomMode') activeRandomMode = value;
+            }
+        };
+
+        window.toggleCollapse = (index) => {
+            stages[index].collapsed = !stages[index].collapsed;
+            renderStages();
+        };
+
+        window.toggleToolbar = (index) => {
+            stages[index].showToolbar = !stages[index].showToolbar;
+            renderStages();
+        };
+
+        window.toggleStage = (index) => {
+            stages[index].enabled = !stages[index].enabled;
+            renderStages();
+        };
+
+        window.removeStage = (index) => {
+            if (confirm("確定要刪除這個階段嗎？")) {
+                stages.splice(index, 1);
+                if (currentStageIndex >= index) {
+                    currentStageIndex = Math.max(-1, currentStageIndex - 1);
+                }
+                renderStages();
+            }
+        };
+
+        window.moveStage = (index, dir) => {
+            if (index + dir < 0 || index + dir >= stages.length) return;
+            const temp = stages[index];
+            stages[index] = stages[index + dir];
+            stages[index + dir] = temp;
+            renderStages();
+        };
+
+        window.renameStage = (index) => {
+            const currentName = stages[index].name || '自訂階段';
+            const newName = prompt("請輸入階段名稱 (Enter stage name):", currentName);
+            if (newName !== null && newName.trim() !== '') {
+                stages[index].name = newName.trim();
+                renderStages();
+            }
+        };
+
+        ui.addStageBtn.addEventListener('click', () => {
+            stages.push({
+                id: Date.now(),
+                enabled: true,
+                ...DEFAULT_NEW_STAGE
+            });
+            renderStages();
+            // Scroll to bottom of the page
+            setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }, 50);
+        });
+
+        function updateTimerDisplay(secondsLeft) {
+            if (isInfiniteCurrent) {
+                ui.timerDisplay.innerText = "∞ (Infinite)";
+                return;
+            }
+            if (!isPlaying && secondsLeft === 0) {
+                ui.timerDisplay.innerText = "--:--";
+                return;
+            }
+            let m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+            let s = Math.floor(secondsLeft % 60).toString().padStart(2, '0');
+            ui.timerDisplay.innerText = `${m}:${s}`;
+        }
+
+        function playSingleTone(time, freq) {
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            gainNode.gain.setValueAtTime(0, time);
+            gainNode.gain.linearRampToValueAtTime(1, time + 0.002);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+            osc.start(time);
+            osc.stop(time + 0.05);
+        }
+
+        function playNote(time) {
+            let numNotes = 1;
+
+            if (activeRandomMode) {
+                const r = Math.random();
+                if (r < 0.3) numNotes = 0;
+                else if (r < 0.6) numNotes = 1;
+                else if (r < 0.9) numNotes = 2;
+                else if (r < 0.95) numNotes = 4;
+                else numNotes = 5;
+
+                for (let i = 0; i < numNotes; i++) {
+                    const noteTime = time + i * (Math.random() * 0.1 + 0.25);
+
+                    let diff = (Math.random() * 200) - 100;
+                    lastRandomFreq += diff;
+                    if (lastRandomFreq < 150) lastRandomFreq = 150;
+                    if (lastRandomFreq > 5000) lastRandomFreq = 5000;
+
+                    playSingleTone(noteTime, lastRandomFreq);
+                }
+            } else {
+                playSingleTone(time, activeFreq);
+            }
+
+            if (numNotes > 0) {
+                const delay = Math.max((time - audioContext.currentTime) * 1000, 0);
+                setTimeout(() => {
+                    pulseProgress = 0.01;
+                    ui.visualizer.classList.add('tick');
+                    setTimeout(() => {
+                        ui.visualizer.classList.remove('tick');
+                    }, 70);
+                }, delay);
+            }
+        }
+
+        function scheduler() {
+            if (!isPlaying) return;
+            while (nextNoteTime < audioContext.currentTime + scheduleAheadTime) {
+                playNote(nextNoteTime);
+                const secondsPerBeat = 60.0 / activeBpm;
+                nextNoteTime += secondsPerBeat;
+            }
+            timeWorkerId = setTimeout(scheduler, lookahead);
+        }
+
+        function playStage(index) {
+            currentStageIndex = index;
+            const stage = stages[index];
+
+            activeBpm = stage.bpm;
+            activeFreq = stage.frequency;
+            activeRandomMode = stage.randomMode;
+            isInfiniteCurrent = stage.infinite;
+            lastRandomFreq = activeFreq;
+
+            visualizerText = "";
+            renderStages(); // update active class
+
+            if (!isInfiniteCurrent) {
+                endTime = Date.now() + (stage.durationSec * 1000);
+            }
+        }
+
+        function nextStage() {
+            let nextIndex = currentStageIndex + 1;
+            while (nextIndex < stages.length && !stages[nextIndex].enabled) {
+                nextIndex++;
+            }
+
+            if (nextIndex < stages.length) {
+                playStage(nextIndex);
+            } else {
+                stopMetronome();
+                ui.timerDisplay.innerText = "DONE";
+                visualizerText = "DONE";
+            }
+        }
+
+        function timerCountdown() {
+            if (!isPlaying) return;
+
+            if (isInfiniteCurrent) {
+                updateTimerDisplay(0);
+                timerIntervalId = window.requestAnimationFrame(timerCountdown);
+                return;
+            }
+
+            const now = Date.now();
+            const remaining = (endTime - now) / 1000;
+
+            if (remaining <= 0) {
+                nextStage();
+                if (isPlaying) {
+                    timerIntervalId = window.requestAnimationFrame(timerCountdown);
+                }
+            } else {
+                updateTimerDisplay(remaining);
+                timerIntervalId = window.requestAnimationFrame(timerCountdown);
+            }
+        }
+
+        function startMetronome() {
+            if (stages.length === 0) return;
+
+            // Find first enabled stage
+            let firstEnabled = -1;
+            for (let i = 0; i < stages.length; i++) {
+                if (stages[i].enabled) {
+                    firstEnabled = i;
+                    break;
+                }
+            }
+
+            if (firstEnabled === -1) return; // No enabled stages
+
+            if (!audioContext) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContext();
+            }
+
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            isPlaying = true;
+            ui.playBtn.innerText = "STOP";
+            ui.playBtn.classList.add('playing');
+            requestWakeLock();
+
+            playStage(firstEnabled);
+
+            nextNoteTime = audioContext.currentTime + 0.05;
+            scheduler();
+            timerCountdown();
+        }
+
+        function stopMetronome() {
+            isPlaying = false;
+            currentStageIndex = -1;
+
+            ui.playBtn.innerText = "START";
+            ui.playBtn.classList.remove('playing');
+
+            clearTimeout(timeWorkerId);
+            cancelAnimationFrame(timerIntervalId);
+
+            renderStages(); // Remove active state
+            updateTimerDisplay(0);
+            visualizerText = "READY";
+            releaseWakeLock();
+        }
+
+        ui.playBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                stopMetronome();
+            } else {
+                startMetronome();
+            }
+        });
+
+        // Initialize UI
+        renderStages();
+
+    </script>
+</body>
+
+</html>
