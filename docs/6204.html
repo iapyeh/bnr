@@ -803,17 +803,26 @@
                         </div>
 
                         <div class="control-group">
-                            <label>Duration (Seconds)</label>
-                            <div class="time-inputs">
-                                <div class="input-box">
-                                    <input type="number" min="1" value="${stage.durationSec}" 
-                                        onchange="updateStage(${index}, 'durationSec', this.value)" ${stage.infinite ? 'disabled' : ''}>
+                            <label style="margin-bottom: 10px; display: block;">時間長度 (Duration)</label>
+                            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="number" class="inline-input" min="0" value="${Math.floor(stage.durationSec / 3600)}" 
+                                        onchange="updateDuration(${index}, 'h', this.value)" ${stage.infinite ? 'disabled' : ''} style="width: 55px; padding: 8px 4px;"> 
+                                    <span style="font-size: 14px; color: var(--muted)">時</span>
+                                    
+                                    <input type="number" class="inline-input" min="0" max="59" value="${Math.floor((stage.durationSec % 3600) / 60)}" 
+                                        onchange="updateDuration(${index}, 'm', this.value)" ${stage.infinite ? 'disabled' : ''} style="width: 55px; padding: 8px 4px;"> 
+                                    <span style="font-size: 14px; color: var(--muted)">分</span>
+                                    
+                                    <input type="number" class="inline-input" min="0" max="59" value="${stage.durationSec % 60}" 
+                                        onchange="updateDuration(${index}, 's', this.value)" ${stage.infinite ? 'disabled' : ''} style="width: 55px; padding: 8px 4px;"> 
+                                    <span style="font-size: 14px; color: var(--muted)">秒</span>
                                 </div>
+                                <label class="infinite-toggle" style="margin-top: 0; margin-bottom: 0;">
+                                    <input type="checkbox" onchange="updateStage(${index}, 'infinite', this.checked)" ${stage.infinite ? 'checked' : ''}>
+                                    持續不停 (Infinite)
+                                </label>
                             </div>
-                            <label class="infinite-toggle">
-                                <input type="checkbox" onchange="updateStage(${index}, 'infinite', this.checked)" ${stage.infinite ? 'checked' : ''}>
-                                一直持續不停 (Infinite)
-                            </label>
                         </div>
                     </div>
                 `;
@@ -832,6 +841,23 @@
             if (current > 150) current = 150;
             updateStage(index, 'bpm', current);
             renderStages();
+        };
+
+        window.updateDuration = (index, type, value) => {
+            let currentTotal = stages[index].durationSec;
+            let h = Math.floor(currentTotal / 3600);
+            let m = Math.floor((currentTotal % 3600) / 60);
+            let s = currentTotal % 60;
+            
+            let val = parseInt(value) || 0;
+            if (type === 'h') h = val;
+            if (type === 'm') m = Math.min(59, Math.max(0, val));
+            if (type === 's') s = Math.min(59, Math.max(0, val));
+            
+            let newTotal = h * 3600 + m * 60 + s;
+            if (newTotal <= 0) newTotal = 1;
+            
+            updateStage(index, 'durationSec', newTotal);
         };
 
         window.updateStage = (index, field, value, element) => {
@@ -897,6 +923,7 @@
             const newName = prompt("請輸入階段名稱 (Enter stage name):", currentName);
             if (newName !== null && newName.trim() !== '') {
                 stages[index].name = newName.trim();
+                localStorage.setItem('metronome_saved_stages', JSON.stringify(stages));
                 renderStages();
             }
         };
